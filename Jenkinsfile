@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         // JFrog Configuration
-        JFROG_URL = 'https://trialub2537.jfrog.io'
+        JFROG_URL = 'https://trial5kxuwt.jfrog.io'
         JFROG_CLI_VERSION = '2.52.0'
         
         // Artifactory repository names
