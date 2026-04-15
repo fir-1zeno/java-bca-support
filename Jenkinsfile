@@ -135,25 +135,24 @@ pipeline {
                         if (isUnix()) {
                             sh '''
                                 echo "Scanning JAR file..."
-                                ./jf scan target/*.jar || echo "Vulnerabilities found - check results"
-                                
+                                ./jf scan target/*.jar
+
                                 echo "Running audit on project dependencies..."
-                                ./jf audit --mvn --watches=${XRAY_WATCH} || echo "Vulnerabilities found in dependencies"
+                                ./jf audit --mvn --watches=${XRAY_WATCH}
                             '''
                         } else {
                             bat '''
                                 echo Scanning JAR file...
-                                jf.exe scan target/*.jar || echo Vulnerabilities found - check results
-                                
+                                jf.exe scan target\\*.jar
+
                                 echo Running audit on project dependencies...
-                                jf.exe audit --mvn --watches=%XRAY_WATCH% || echo Vulnerabilities found in dependencies
+                                jf.exe audit --mvn --watches=%XRAY_WATCH%
                             '''
                         }
                     } catch (Exception e) {
-                        echo "⚠️ CRITICAL: Vulnerabilities detected!"
+                        echo "⚠️ JFrog scan command failed."
                         echo "Details: ${e.message}"
                         currentBuild.result = 'UNSTABLE'
-                        // Continue to report generation but mark as unstable
                     }
                 }
             }
