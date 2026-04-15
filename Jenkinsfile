@@ -6,8 +6,8 @@ pipeline {
         JFROG_URL = 'https://trial789.jfrog.io'
         JFROG_CLI_VERSION = '2.99.0'        
         // Artifactory repository names
-        MAVEN_REPO = 'libs-release-local'
-        MAVEN_SNAPSHOT_REPO = 'libs-snapshot-local'
+        MAVEN_REPO = 'bcasd1-libs-release-local'
+        MAVEN_SNAPSHOT_REPO = 'bcasd1-libs-snapshot-local'
         
         // Build info
         BUILD_NAME = 'bca-security-demo'
