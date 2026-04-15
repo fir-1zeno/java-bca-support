@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         // JFrog Configuration
-        JFROG_URL = 'https://trial5kxuwt.jfrog.io'
+        JFROG_URL = 'https://trial789.jfrog.io/ui'
         JFROG_CLI_VERSION = '2.52.0'
         
         // Artifactory repository names
@@ -62,7 +62,7 @@ pipeline {
                 echo '🔑 Configuring JFrog CLI credentials...'
                 echo '========================================='
                 withCredentials([usernamePassword(
-                    credentialsId: 'jfrog-credentials', 
+                    credentialsId: 'jfrog-rahman-credential', 
                     usernameVariable: 'JFROG_USER', 
                     passwordVariable: 'JFROG_PASSWORD'
                 )]) {
