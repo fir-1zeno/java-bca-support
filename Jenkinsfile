@@ -14,7 +14,7 @@ pipeline {
         BUILD_NUMBER = "${env.BUILD_NUMBER}"
         
         // Xray watch name (must match watch created in Xray UI)
-        XRAY_WATCH = 'Security_watch_1'
+        XRAY_WATCH = 'bcasd-watch'
     }
     
     tools {
