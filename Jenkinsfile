@@ -4,8 +4,7 @@ pipeline {
     environment {
         // JFrog Configuration
         JFROG_URL = 'https://trial789.jfrog.io'
-        JFROG_CLI_VERSION = '2.52.0'
-        
+        JFROG_CLI_VERSION = '2.99.0'        
         // Artifactory repository names
         MAVEN_REPO = 'libs-release-local'
         MAVEN_SNAPSHOT_REPO = 'libs-snapshot-local'
@@ -42,7 +41,7 @@ pipeline {
                     if (isUnix()) {
                         sh '''
                             # Download JFrog CLI directly to workspace (no sudo needed)
-                            curl -fL https://releases.jfrog.io/artifactory/jfrog-cli/v2-jf/2.52.0/jfrog-cli-linux-amd64/jf -o jf
+                            curl -fL https://releases.jfrog.io/artifactory/jfrog-cli/v2-jf/${JFROG_CLI_VERSION}/jfrog-cli-linux-amd64/jf -o jf
                             chmod +x jf
                             ./jf --version
                         '''
