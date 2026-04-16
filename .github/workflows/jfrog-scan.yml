@@ -47,7 +47,6 @@ jobs:
 
       - name: 🔍 JFrog Xray Scan (Audit)
         # We use 'continue-on-error' to mimic your Jenkins try-catch logic
-        continue-on-error: true
         run: |
           echo "Scanning JAR file..."
           jf scan "target/*.jar"
