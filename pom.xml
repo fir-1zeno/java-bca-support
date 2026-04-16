@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.bca.demo</groupId>
-    <artifactId>bca-security-demo</artifactId>
+    <artifactId>firdaus-security-demo</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
