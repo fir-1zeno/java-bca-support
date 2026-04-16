@@ -18,7 +18,7 @@ jobs:
   build-and-scan:
     # Use 'ubuntu-latest' for Unix-like or 'windows-latest' for Windows
     runs-on: ubuntu-latest
-    environment: Configure JFROG_PASSWORD
+    environment: JFROG_PASSWORD
 
     steps:
       - name: 🏗️ Checkout
