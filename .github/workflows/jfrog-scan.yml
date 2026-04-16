@@ -12,7 +12,7 @@ env:
   MAVEN_SNAPSHOT_REPO: 'bcasd1-libs-snapshot-local'
   BUILD_NAME: 'firdaus-security-demo'
   XRAY_WATCH: 'firdaus-watches'
-  JFROG_USER: 'firdaus.ghazali@izeno.com'
+  JF_USER: 'firdaus.ghazali@izeno.com'
 
 jobs:
   build-and-scan:
@@ -36,7 +36,7 @@ jobs:
         env:
           # Define these in GitHub Repo Settings > Secrets and Variables > Actions
           JF_URL: ${{ env.JFROG_URL }}
-          JF_USER: ${{ env.JFROG_USER }}
+          JF_USER: ${{ secrets.JFROG_USER }}
           JF_PASSWORD: ${{ secrets.JFROG_PASSWORD }}
 
       - name: 🧪 Build & Test
