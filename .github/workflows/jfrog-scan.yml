@@ -46,7 +46,8 @@ jobs:
         run: mvn package -DskipTests=true
 
       - name: 🔍 JFrog Xray Scan (Audit)
-        # We use 'continue-on-error' to mimic your Jenkins try-catch logic
+        # We are using the "Fail Fast" approach. If vulnerabilities are found here, 
+        # the build stops immediately and prevents the artifact from being uploaded.
         run: |
           echo "Scanning JAR file..."
           jf scan "target/*.jar"
@@ -70,18 +71,18 @@ jobs:
 
       - name: 🔒 Xray Build Scan
         if: success()
-        # Setting --fail=true (or removing the flag) forces the step to fail if vulnerabilities are found.
+        # Setting --fail=true forces the step to fail if server-side vulnerabilities are found.
         run: |
           jf build-scan ${{ env.BUILD_NAME }} ${{ github.run_number }} --fail=true
 
       - name: 🚨 Security Gate Evaluation
-        # The 'if: failure()' condition ensures this step ONLY runs if the scan above failed.
+        # The 'if: failure()' condition ensures this step ONLY runs if any prior step failed.
         if: failure() 
         run: |
           echo "========================================="
           echo "❌ SECURITY GATE: FAILED ❌"
           echo "========================================="
-          echo "Scanning failed because security vulnerabilities were detected by Xray!"
-          echo "Action Required: Review Xray results in the JFrog UI for Build ${{ env.BUILD_NAME }} #${{ github.run_number }}"
+          echo "Scanning failed because critical security vulnerabilities were detected!"
+          echo "Action Required: Scroll up and review the 'JFrog Xray Scan (Audit)' logs in GitHub to see the vulnerable dependencies."
           echo "Deployment is BLOCKED by Security Policy."
           exit 1 # Ensures the pipeline explicitly registers this as a failure
