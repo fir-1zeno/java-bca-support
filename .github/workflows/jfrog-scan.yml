@@ -58,7 +58,7 @@ jobs:
         if: success() || github.run_status == 'unstable' 
         run: |
           jf rt upload "target/*.jar" \
-            "${{ env.MAVEN_SNAPSHOT_REPO }}/com/bca/demo/bca-security-demo/1.0-SNAPSHOT/" \
+            "${{ env.MAVEN_SNAPSHOT_REPO }}/com/bca/demo/firdaus-security-demo/1.0-SNAPSHOT/" \
             --flat=true \
             --build-name=${{ env.BUILD_NAME }} \
             --build-number=${{ github.run_number }}
