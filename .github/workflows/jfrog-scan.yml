@@ -1,0 +1,84 @@
+name: JFrog Security Scan & Upload
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+env:
+  JFROG_URL: 'https://trial789.jfrog.io' # Update this
+  MAVEN_SNAPSHOT_REPO: 'bcasd1-libs-snapshot-local'
+  BUILD_NAME: 'firdaus-security-demo'
+  XRAY_WATCH: 'firdaus-watches'
+  JFROG_USER: 'firdaus.ghazali@izeno.com'
+
+jobs:
+  build-and-scan:
+    # Use 'ubuntu-latest' for Unix-like or 'windows-latest' for Windows
+    runs-on: ubuntu-latest
+    environment: Configure JFROG_PASSWORD
+
+    steps:
+      - name: 🏗️ Checkout
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: ⚙️ Setup JFrog CLI
+        uses: jfrog/setup-jfrog-cli@v4
+        env:
+          # Define these in GitHub Repo Settings > Secrets and Variables > Actions
+          JF_URL: ${{ env.JFROG_URL }}
+          JF_USER: ${{ env.JFROG_USER }}
+          JF_PASSWORD: ${{ secrets.JFROG_PASSWORD }}
+
+      - name: 🧪 Build & Test
+        run: mvn clean compile test -DskipTests=false
+
+      - name: 📦 Package
+        run: mvn package -DskipTests=true
+
+      - name: 🔍 JFrog Xray Scan (Audit)
+        # We use 'continue-on-error' to mimic your Jenkins try-catch logic
+        continue-on-error: true
+        run: |
+          echo "Scanning JAR file..."
+          jf scan "target/*.jar"
+          echo "Running audit on project dependencies..."
+          jf audit --mvn --watches=${{ env.XRAY_WATCH }}
+
+      - name: 📤 Upload to Artifactory
+        if: success() || github.run_status == 'unstable' 
+        run: |
+          jf rt upload "target/*.jar" \
+            "${{ env.MAVEN_SNAPSHOT_REPO }}/com/bca/demo/bca-security-demo/1.0-SNAPSHOT/" \
+            --flat=true \
+            --build-name=${{ env.BUILD_NAME }} \
+            --build-number=${{ github.run_number }}
+
+      - name: 📊 Publish Build Info
+        if: success() || github.run_status == 'unstable'
+        run: |
+          jf rt build-collect-env ${{ env.BUILD_NAME }} ${{ github.run_number }}
+          jf rt build-publish ${{ env.BUILD_NAME }} ${{ github.run_number }}
+
+      - name: 🔒 Xray Build Scan
+        if: success() || github.run_status == 'unstable'
+        run: |
+          jf build-scan ${{ env.BUILD_NAME }} ${{ github.run_number }} --fail=false
+
+      - name: 🚦 Security Gate Evaluation
+        run: |
+          echo "========================================="
+          echo "🚦 Evaluating Security Policy..."
+          echo "========================================="
+          # In GitHub Actions, you'd typically use the exit code of 'jf build-scan'
+          # to fail the build, but here we echo the status like your script.
+          echo "Review Xray results in the JFrog UI for Build ${{ env.BUILD_NAME }} #${{ github.run_number }}"
