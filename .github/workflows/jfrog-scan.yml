@@ -45,17 +45,7 @@ jobs:
       - name: 📦 Package
         run: mvn package -DskipTests=true
 
-      - name: 🔍 JFrog Xray Scan (Audit)
-        # We are using the "Fail Fast" approach. If vulnerabilities are found here, 
-        # the build stops immediately and prevents the artifact from being uploaded.
-        run: |
-          echo "Scanning JAR file..."
-          jf scan "target/*.jar"
-          echo "Running audit on project dependencies..."
-          jf audit --mvn --watches=${{ env.XRAY_WATCH }}
-
-      - name: 📤 Upload to Artifactory
-        if: success()
+      - name: � Upload to Artifactory
         run: |
           jf rt upload "target/*.jar" \
             "${{ env.MAVEN_SNAPSHOT_REPO }}/com/bca/demo/firdaus-security-demo/1.0-SNAPSHOT/" \
@@ -64,16 +54,23 @@ jobs:
             --build-number=${{ github.run_number }}
 
       - name: 📊 Publish Build Info
-        if: success() 
         run: |
           jf rt build-collect-env ${{ env.BUILD_NAME }} ${{ github.run_number }}
           jf rt build-publish ${{ env.BUILD_NAME }} ${{ github.run_number }}
 
       - name: 🔒 Xray Build Scan
-        if: success()
-        # Setting --fail=true forces the step to fail if server-side vulnerabilities are found.
+        # Server-side scan: results are stored in JFrog Xray Watch Violations
         run: |
           jf build-scan ${{ env.BUILD_NAME }} ${{ github.run_number }} --fail=true
+
+      - name: 🔍 JFrog Xray Scan (Audit)
+        # Local scan: shows detailed results in GitHub Actions logs
+        if: always()
+        run: |
+          echo "Scanning JAR file..."
+          jf scan "target/*.jar"
+          echo "Running audit on project dependencies..."
+          jf audit --mvn --watches=${{ env.XRAY_WATCH }}
 
       - name: 🚨 Security Gate Evaluation
         # The 'if: failure()' condition ensures this step ONLY runs if any prior step failed.
