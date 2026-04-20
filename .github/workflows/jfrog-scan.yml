@@ -40,7 +40,21 @@ jobs:
           JF_PASSWORD: ${{ secrets.JFROG_PASSWORD }}
 
       - name: 🧪 Build & Test
-        run: mvn clean compile test -DskipTests=false
+        run: |
+          jf mvn-config \
+            --repo-resolve-releases=bcasd1-mvn-virtual \
+            --repo-resolve-snapshots=bcasd1-mvn-virtual \
+            --repo-deploy-snapshots=${{ env.MAVEN_SNAPSHOT_REPO }}
+
+          jf mvn clean test \
+            --build-name="${{ env.BUILD_NAME }}" \
+            --build-number="${{ github.run_number }}"
+
+      - name: 📦 Package
+        run: |
+          jf mvn package -DskipTests=true \
+            --build-name="${{ env.BUILD_NAME }}" \
+            --build-number="${{ github.run_number }}"
 
       - name: 📦 Package
         run: mvn package -DskipTests=true
