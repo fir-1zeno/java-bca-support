@@ -73,7 +73,7 @@ jobs:
         if: success()
         # Setting --fail=true forces the step to fail if server-side vulnerabilities are found.
         run: |
-          jf build-scan ${{ env.BUILD_NAME }} ${{ github.run_number }} --watches=${{ env.XRAY_WATCH }} --fail=true
+          jf build-scan --watches=${{ env.XRAY_WATCH }} --fail=true ${{ env.BUILD_NAME }} ${{ github.run_number }}
 
       - name: 🚨 Security Gate Evaluation
         # The 'if: failure()' condition ensures this step ONLY runs if any prior step failed.
