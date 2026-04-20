@@ -34,34 +34,22 @@ jobs:
       - name: ⚙️ Setup JFrog CLI
         uses: jfrog/setup-jfrog-cli@v4
         env:
-          # Define these in GitHub Repo Settings > Secrets and Variables > Actions
           JF_URL: ${{ env.JFROG_URL }}
           JF_USER: ${{ secrets.JFROG_USER }}
           JF_PASSWORD: ${{ secrets.JFROG_PASSWORD }}
 
-      - name: 🧪 Build & Test
-        run: mvn clean compile test -DskipTests=false
+      - name: 🧪 Test Code (Optional, just testing without packaging)
+        run: mvn clean test 
 
-      - name: 📦 Package
-        run: mvn package -DskipTests=true
-
-      - name: 🔍 JFrog Xray Scan (Audit)
-        # We are using the "Fail Fast" approach. If vulnerabilities are found here, 
-        # the build stops immediately and prevents the artifact from being uploaded.
+      - name: ⚙️ Configure JFrog Maven
         run: |
-          echo "Scanning JAR file..."
-          jf scan "target/*.jar"
-          echo "Running audit on project dependencies..."
-          jf audit --mvn --watches=${{ env.XRAY_WATCH }}
+          # This tells JFrog which repository to deploy the built artifacts to
+          jf mvnc --repo-deploy-releases ${{ env.MAVEN_SNAPSHOT_REPO }} --repo-deploy-snapshots ${{ env.MAVEN_SNAPSHOT_REPO }}
 
-      - name: 📤 Upload to Artifactory
-        if: success()
+      - name: 📦 Build, Capture Dependencies & Upload
         run: |
-          jf rt upload "target/*.jar" \
-            "${{ env.MAVEN_SNAPSHOT_REPO }}/com/bca/demo/firdaus-security-demo/1.0-SNAPSHOT/" \
-            --flat=true \
-            --build-name=${{ env.BUILD_NAME }} \
-            --build-number=${{ github.run_number }}
+          # jf mvn automatically captures the dependency tree AND uploads the artifact to Artifactory
+          jf mvn clean install -DskipTests=true --build-name=${{ env.BUILD_NAME }} --build-number=${{ github.run_number }}
 
       - name: 📊 Publish Build Info
         if: success() 
@@ -71,18 +59,14 @@ jobs:
 
       - name: 🔒 Xray Build Scan
         if: success()
-        # Setting --fail=true forces the step to fail if server-side vulnerabilities are found.
         run: |
           jf build-scan --fail=true ${{ env.BUILD_NAME }} ${{ github.run_number }}
 
       - name: 🚨 Security Gate Evaluation
-        # The 'if: failure()' condition ensures this step ONLY runs if any prior step failed.
         if: failure() 
         run: |
           echo "========================================="
           echo "❌ SECURITY GATE: FAILED ❌"
           echo "========================================="
           echo "Scanning failed because critical security vulnerabilities were detected!"
-          echo "Action Required: Scroll up and review the 'JFrog Xray Scan (Audit)' logs in GitHub to see the vulnerable dependencies."
-          echo "Deployment is BLOCKED by Security Policy."
-          exit 1 # Ensures the pipeline explicitly registers this as a failure
+          exit 1
