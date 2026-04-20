@@ -39,25 +39,23 @@ jobs:
           JF_USER: ${{ secrets.JFROG_USER }}
           JF_PASSWORD: ${{ secrets.JFROG_PASSWORD }}
 
-      - name: 🧪 Build & Test
+      # CRITICAL: Use 'jf mvn' instead of 'mvn' so JFrog CLI captures ALL dependencies
+      # in build-info. Without this, Xray only sees the thin JAR (0 vulnerabilities).
+      # Reference: https://docs.jfrog.com/integrations/docs/example-continuous-integration-between-github-actions-and-artifactory
+
+      - name: ⚙️ Configure Maven with JFrog CLI
         run: |
-          jf mvn-config \
-            --repo-resolve-releases=bcasd1-mvn-virtual \
-            --repo-resolve-snapshots=bcasd1-mvn-virtual \
+          jf mvnc \
             --repo-deploy-snapshots=${{ env.MAVEN_SNAPSHOT_REPO }}
 
-          jf mvn clean test \
-            --build-name="${{ env.BUILD_NAME }}" \
-            --build-number="${{ github.run_number }}"
-
-      - name: 📦 Package
+      - name: 🧪 Build, Test & Package
+        env:
+          JFROG_CLI_BUILD_NAME: ${{ env.BUILD_NAME }}
+          JFROG_CLI_BUILD_NUMBER: ${{ github.run_number }}
         run: |
-          jf mvn package -DskipTests=true \
-            --build-name="${{ env.BUILD_NAME }}" \
-            --build-number="${{ github.run_number }}"
-
-      - name: 📦 Package
-        run: mvn package -DskipTests=true
+          jf mvn clean package -DskipTests=false \
+            --build-name=${{ env.BUILD_NAME }} \
+            --build-number=${{ github.run_number }}
 
       - name: � Upload to Artifactory
         run: |
@@ -70,6 +68,7 @@ jobs:
       - name: 📊 Publish Build Info
         run: |
           jf rt build-collect-env ${{ env.BUILD_NAME }} ${{ github.run_number }}
+          jf rt build-add-git ${{ env.BUILD_NAME }} ${{ github.run_number }}
           jf rt build-publish ${{ env.BUILD_NAME }} ${{ github.run_number }}
 
       - name: 🔒 Xray Build Scan
