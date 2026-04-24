@@ -1,31 +1,35 @@
-name: .NET Build and JFrog Security Scan
+name: JFrog Security Scan & Upload
 
 on:
   push:
-    branches: [ "sit" ]
+    branches: [ dev ]
   pull_request:
-    branches: [ "sit" ]
+    branches: [ dev ]
   workflow_dispatch:
 
 env:
-  JFROG_URL: 'https://trial9cn0pa.jfrog.io'
-  ARTIFACTORY_REPO: 'dotnet-generic-local'
-  BUILD_NAME: 'SIT-simple-web-app'
+  JFROG_URL: 'https://trial789.jfrog.io' # Update this
+  MAVEN_SNAPSHOT_REPO: 'bcasd1-libs-snapshot-local'
+  BUILD_NAME: 'firdaus-security-demo'
   XRAY_WATCH: 'firdaus-watches'
+  JF_USER: 'firdaus.ghazali@izeno.com'
 
 jobs:
   build-and-scan:
-    name: Build, Scan & Upload
+    # Use 'ubuntu-latest' for Unix-like or 'windows-latest' for Windows
     runs-on: ubuntu-latest
-    
+    environment: JFROG_PASSWORD
+
     steps:
-      - name: 🏗️ Checkout repository
+      - name: 🏗️ Checkout
         uses: actions/checkout@v4
 
-      - name: ☕ Setup .NET SDK
-        uses: actions/setup-dotnet@v4
+      - name: ☕ Setup JDK 11
+        uses: actions/setup-java@v4
         with:
-          dotnet-version: '10.0.x'
+          java-version: '11'
+          distribution: 'temurin'
+          cache: 'maven'
 
       - name: ⚙️ Setup JFrog CLI
         uses: jfrog/setup-jfrog-cli@v4
@@ -34,42 +38,29 @@ jobs:
           JF_USER: ${{ secrets.JFROG_USER }}
           JF_PASSWORD: ${{ secrets.JFROG_PASSWORD }}
 
-      # --- SAST SCAN STEP ---
-      # Following JFrog best practices for on-demand source code scanning
-      - name: 🔍 JFrog SAST & Secrets Scan
-        run: |
-          echo "Scanning source code for vulnerabilities and secrets..."
-          # Note: We use commas for exclusions in the local 'jf scan' command
-          jf scan ./ \
-            --sast=true \
-            --secrets=true \
-            --vuln=true \
-            --exclusions="*.git*,*obj*,*bin*,*wwwroot/lib*"
+      - name: 🧪 Test Code (Optional, just testing without packaging)
+        run: mvn clean test 
 
-      # --- BUILD STEP ---
-      # We wrap 'dotnet' with 'jf' to record dependencies in the build-info
-      - name: 📦 Build .NET application
+      - name: ⚙️ Configure JFrog Maven
         run: |
-          jf dotnet restore SimpleWebApp.csproj --build-name=${{ env.BUILD_NAME }} --build-number=${{ github.run_number }}
-          jf dotnet build SimpleWebApp.csproj --no-restore --configuration Release --build-name=${{ env.BUILD_NAME }} --build-number=${{ github.run_number }}
+          # This tells JFrog which repository to deploy the built artifacts to
+          jf mvnc --repo-deploy-releases ${{ env.MAVEN_SNAPSHOT_REPO }} --repo-deploy-snapshots ${{ env.MAVEN_SNAPSHOT_REPO }}
 
-      - name: 📂 Publish & Upload
+      - name: 📦 Build, Capture Dependencies & Upload
         run: |
-          dotnet publish SimpleWebApp.csproj --no-restore --configuration Release -o ./publish_output
-          jf rt upload "publish_output/*" \
-            "${{ env.ARTIFACTORY_REPO }}/SimpleWebApp/${{ github.run_number }}/" \
-            --build-name=${{ env.BUILD_NAME }} \
-            --build-number=${{ github.run_number }}
+          # jf mvn automatically captures the dependency tree AND uploads the artifact to Artifactory
+          jf mvn clean install -DskipTests=true --build-name=${{ env.BUILD_NAME }} --build-number=${{ github.run_number }}
 
-      - name: 📊 Publish Build Info to JFrog
+      - name: 📊 Publish Build Info
         if: success() 
         run: |
           jf rt build-collect-env ${{ env.BUILD_NAME }} ${{ github.run_number }}
           jf rt build-publish ${{ env.BUILD_NAME }} ${{ github.run_number }}
 
-      - name: 🔒 Xray Build Scan (Final Gate)
+      - name: 🔒 Xray Build Scan
         if: success()
-        run: jf build-scan --fail=true ${{ env.BUILD_NAME }} ${{ github.run_number }}
+        run: |
+          jf build-scan --fail=true ${{ env.BUILD_NAME }} ${{ github.run_number }}
 
       - name: 🚨 Security Gate Evaluation
         if: failure() 
